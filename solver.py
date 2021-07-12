@@ -23,11 +23,27 @@ class Node:
     def __lt__(self, other):
         return self.number < other.number
 
+    def __add__(self, other):
+        self.mag += other
+        return self
+
+    def __sub__(self, other):
+        self.mag -= other
+        return self
+
+    def __mul__(self, other):
+        self.mag *= other
+        return self
+
+    def __truediv__(self, other):
+        self.mag /= other
+        return self
+
     def isBasic(self):
-        return self.y == 0
+        return self.col == 0
 
     def isNonbasic(self):
-        return self.x == 0
+        return self.row == 0
 
     def isPrimalCandidate(self):
         return self.isNonbasic() and self.mag > 0
@@ -114,7 +130,23 @@ class LP:
         return
 
     def chooseLeavingDual(self, enteringNode):
-        print("Leaving dual: " + str(candidates))
+        # compute the bounds on the candidate leaving variables
+        candidates = (
+            [
+                (i, (-1 * self.dictionary[0][i].mag) / self.dictionary[enteringNode.row][i])
+                for i in range(1, len(self.dictionary[0]))
+                if self.dictionary[0][i].mag <= 0
+                and self.dictionary[enteringNode.row][i] > 0
+            ]
+        )
+        minimum = min(pair[1] for pair in candidates)
+        print(minimum)
+        candidates = [pair for pair in candidates if pair[1] == minimum]
+        if len(candidates) == 1:
+            return self.dictionary[0][candidates[0][0]]
+        elif len(candidates > 1):
+            candidates = [self.dictionary[0][candidate[0]] for candidate in candidates]
+            return min(candidates)
         return
 
     def primalPivot(self):
@@ -122,6 +154,21 @@ class LP:
         print("Entering: " + str(entering))
         leaving = self.chooseLeavingPrimal(entering)
         print("Leaving: " + str(leaving))
+        # solve leaving var row for entering var
+        leaving_row = self.dictionary[leaving.row]
+        leaving_coeff = leaving_row[entering.col] * -1
+        print("leaving coeff: " + str(leaving_coeff))
+        self.printDictionary()
+        leaving_row[entering.col] = float(-1)
+        self.printDictionary()
+
+        print("leaving coeff: " + str(leaving_coeff))
+        # for i in range(1, len(leaving_row)):
+            # leaving_row[i] = leaving_row[i] / leaving_coeff
+        leaving_row = [val/leaving_coeff for val in leaving_row]
+        print(leaving_row)
+        self.dictionary[leaving.row] = leaving_row
+        self.printDictionary()
         return
 
     def dualPivot(self):
